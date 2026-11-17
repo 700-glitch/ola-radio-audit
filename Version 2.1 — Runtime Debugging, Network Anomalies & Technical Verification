@@ -1,0 +1,380 @@
+# OLA RADIO — INDEPENDENT ANDROID INVESTIGATION
+
+## Version 2.1 — Runtime Debugging, Network Anomalies & Technical Verification
+
+**Project:** Ola Radio Independent Investigation  
+**Application:** Ola Radio  
+**Package:** `com.aewt.app.friends`  
+**Application version:** 2.5.9  
+**Version code:** 49  
+**Target SDK:** 36  
+**Test environment:** Kali Linux and Android tablet  
+**Investigation date:** 17 November 2026  
+**Status:** Open investigation — suspicious behaviour identified; further verification required
+
+---
+
+## 1. Executive Summary
+
+Version 2.1 extends the findings documented in Version 2.0. It records additional observations made during Android runtime debugging and process-filtered log analysis.
+
+The most important finding is the repeated appearance of DNS requests for randomly prefixed hostnames sharing the suffix:
+
+`2940637fafa.com`
+
+Four distinct hostnames matching this pattern were observed in logs associated with two process identifiers attributed to the Ola Radio application:
+
+- PID 29219
+- PID 31418
+
+The pattern is significant because similar domain-generation structures have been documented in external research concerning the Vo1d Android malware family.
+
+This does not prove that Ola Radio contains Vo1d malware, that the tablet is infected, or that the observed domains are controlled by the same operators. It does, however, establish a specific and testable threat-intelligence lead.
+
+The investigation also recorded Bluetooth Low Energy scanning activity, location-related application operations and an encrypted connection to MapLibre infrastructure.
+
+The central question is whether the FAFA-pattern DNS requests originate from normal application functionality, an embedded third-party component, telemetry or remote-management functionality, or a potentially malicious component.
+
+At present, the purpose of these requests remains unexplained.
+
+**Overall assessment:** The repeated process-attributed DNS observations are a significant anomaly and justify further investigation. They should not be dismissed as routine application behaviour without independent verification.
+
+## 2. Scope and Methodology
+
+This stage focused on observing the application's runtime behaviour rather than conducting a complete security audit.
+
+The test environment included:
+
+| Item | Recorded information |
+|---|---|
+| Host system | Kali Linux |
+| Test device | Android tablet |
+| Device connection | USB-C |
+| Debugging interface | Android Debug Bridge (ADB) |
+| Application package | `com.aewt.app.friends` |
+| Application version | 2.5.9 |
+| Version code | 49 |
+| Target SDK | 36 |
+| Main activity | `com.aewt.app.aewt.MainActivity` |
+| Runtime evidence | Android logcat and package/AppOps inspection |
+
+Process-filtered logs were examined to distinguish application-associated events from unrelated Android system activity.
+
+The process identifiers changed between captures. The relevant PID observations were associated with the Ola Radio package during the investigation.
+
+This process association is important, although PID attribution should be preserved alongside the original capture and process-identification records.
+
+## 3. Primary Finding — Repeated FAFA-Pattern DNS Requests
+
+### 3.1 Direct observations
+
+Four distinct hostnames matching the previously identified FAFA-pattern structure were recorded:
+
+| Timestamp | Hostname | PID |
+|---|---|---:|
+| 13:28:56.134 | `xvjib2940637fafa.com` | 29219 |
+| 13:44:13.398 | `hlxgq2940637fafa.com` | 31418 |
+| 13:44:43.710 | `govbl2940637fafa.com` | 31418 |
+| 13:45:14.225 | `aonog2940637fafa.com` | 31418 |
+
+The corresponding log entries included:
+
+`getaddrinfo: [hostname] get result from proxy gai_error = 0`
+
+The resolver returned a successful result for each recorded hostname.
+
+The observations span two separate application process instances and include three different FAFA-pattern hostnames within the PID 31418 capture.
+
+This is stronger evidence than an isolated DNS entry attributed to an unidentified Android process. It demonstrates repeated DNS resolution requests in logs associated with the Ola Radio process.
+
+### 3.2 Why the domain pattern deserves attention
+
+The observed structure is:
+
+`[five-character prefix]2940637fafa.com`
+
+The prefix changes while the suffix remains constant.
+
+External threat-intelligence research has documented a comparable domain-generation pattern in connection with the Vo1d Android malware family.
+
+That overlap is an important reason to investigate the domains further.
+
+It raises several questions:
+
+- Is the application requesting domains associated with known malware infrastructure?
+- Is an embedded SDK or third-party library generating these requests?
+- Is a component operating inside the application process responsible?
+- Are the requests related to analytics, telemetry or device management?
+- Could the infrastructure be shared, repurposed or unrelated despite the naming similarity?
+
+The pattern is not proof of malware. Equally, the absence of proof is not a reason to disregard the finding.
+
+### 3.3 Current assessment
+
+The evidence supports repeated DNS resolution requests for FAFA-pattern hostnames from process instances associated with Ola Radio.
+
+It does not yet establish a completed connection to those hosts.
+
+The next step must distinguish DNS resolution from actual outbound communication and determine whether any information is exchanged.
+
+This is the highest-priority unresolved network finding in Version 2.1.
+
+## 4. Possible Telemetry, Monitoring or Remote-Management Functionality
+
+One possibility requiring investigation is whether the observed activity originates from a third-party telemetry, monitoring or remote-management component.
+
+Such functionality can be legitimate, but it can also create privacy and security concerns depending on what it collects, who controls it and what capabilities it provides.
+
+The investigation should establish whether any component associated with the application can:
+
+- Identify or distinguish individual devices.
+- Report application usage or diagnostic information.
+- Communicate with external infrastructure in the background.
+- Collect device or location-related information.
+- Receive remote configuration.
+- Receive or act upon instructions from a remote service.
+
+These are investigative questions, not confirmed capabilities.
+
+A third-party library can execute within an application's process. Therefore, process attribution alone does not identify the developer, library or organisation responsible for a particular request.
+
+The investigation has not identified the operator of the FAFA-pattern domains or established what information, if any, is sent to them.
+
+**Assessment:** Telemetry or remote-management functionality is a plausible hypothesis, but the available evidence is insufficient to distinguish it from other explanations, including a potentially malicious component.
+
+## 5. Bluetooth Low Energy Scanning
+
+The Ola Radio process produced the following runtime entry:
+
+`BluetoothLeScanner: startScan`
+
+The logs also recorded:
+
+`onClientRegistered() - status=0`
+
+Additional entries showed calls to retrieve nearby Bluetooth device names.
+
+This establishes that Bluetooth Low Energy scanning-related API activity occurred within the application process and that the scanning client registered successfully.
+
+This is relevant because Bluetooth discovery can expose information about nearby devices.
+
+Further investigation should establish:
+
+- What user action initiates scanning.
+- Whether scanning continues when the application is in the background.
+- What device information is obtained.
+- Whether information is retained locally.
+- Whether any discovered information is transmitted externally.
+- Whether the behaviour matches the application's advertised device-discovery functionality.
+
+The current logs do not establish that nearby device information was transmitted or that any device was paired.
+
+The observed scanning activity is therefore a confirmed runtime behaviour whose purpose and data handling require further examination.
+
+## 6. MapLibre Network Connection
+
+During the PID 31418 capture, the application resolved:
+
+`demotiles.maplibre.org`
+
+The logs recorded a connection to:
+
+`104.18.12.114:443`
+
+The application process then completed a TLS handshake using:
+
+`TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256`
+
+This confirms an encrypted connection to the MapLibre tile host during the captured session.
+
+The connection is consistent with map-related functionality.
+
+However, the encrypted application-layer contents were not visible in the supplied logs. Consequently, the evidence does not establish whether location coordinates or other device information were transmitted.
+
+The MapLibre connection is a separate observed event and must not be treated as a connection to the FAFA-pattern domains.
+
+## 7. Location Permissions and AppOps
+
+Earlier package inspection identified location permissions requested by the application, including fine and coarse location.
+
+Android AppOps inspection recorded allowed location-related operations, including:
+
+- `COARSE_LOCATION`
+- `FINE_LOCATION`
+- `GPS`
+- `MONITOR_LOCATION`
+- `MONITOR_HIGH_POWER_LOCATION`
+
+The recorded timestamps indicate that location-related operations had occurred before the AppOps inspection.
+
+The MapLibre location component also produced errors including:
+
+`Failed to obtain last location update`
+
+and:
+
+`Last location unavailable`
+
+These errors indicate that the component could not obtain a last-known location at those particular moments.
+
+They do not demonstrate that the application never accessed location information.
+
+Permissions, AppOps records, actual location acquisition and external transmission are separate matters. The investigation must not treat one as proof of another.
+
+**Assessment:** Location access is a relevant privacy area for further testing, particularly when correlated with the application's network activity.
+
+## 8. Flutter Rendering and Surface Lifecycle
+
+The supplied logs contained repeated messages such as:
+
+`BufferQueueProducer: queueBuffer: slot ... is dropped`
+
+The rendering statistics included periods around 25 FPS, followed by lower rates during a surface transition.
+
+Additional messages recorded:
+
+- FlutterSurfaceView visibility changes.
+- Surface disconnection.
+- Surface destruction callbacks.
+- GraphicBuffer unregistration.
+- Buffer cancellation.
+
+These messages are consistent with rendering and surface lifecycle activity within the Flutter interface.
+
+They may be relevant to application stability and performance debugging.
+
+They do not explain the FAFA-pattern DNS requests and should not be used to dismiss or reinterpret those separate network observations.
+
+No definitive fatal application exception was established in the supplied excerpts.
+
+## 9. Additional Runtime Errors
+
+### 9.1 Google Play services
+
+The application process recorded:
+
+`SecurityException: Unknown calling package name 'com.google.android.gms'`
+
+This indicates a failed Google services broker operation or integration issue.
+
+Its precise cause remains undetermined. It is not evidence of malicious activity by itself.
+
+### 9.2 SensorManager
+
+The logs also contained:
+
+`sensor or listener is null`
+
+The specific sensor and cause were not established.
+
+These errors are retained as debugging observations but are not currently treated as primary security findings.
+
+## 10. Evidence Assessment
+
+| Observation | Evidence status | Significance |
+|---|---|---|
+| Four distinct FAFA-pattern DNS requests | Observed in process-filtered logs | High investigative priority |
+| Successful DNS resolver results | Observed | Confirms resolution result, not a connection |
+| Similarity to documented Vo1d domain pattern | Threat-intelligence lead | Requires independent validation |
+| Successful FAFA-host connection | Not established | Important evidence gap |
+| Data sent to FAFA infrastructure | Not established | Important evidence gap |
+| Bluetooth scanning API activity | Observed | Relevant to device privacy |
+| Bluetooth information transmission | Not established | Requires network correlation |
+| MapLibre TLS connection | Observed | Consistent with map functionality |
+| Location transmission | Not established | Requires further testing |
+| Flutter surface lifecycle events | Observed | Runtime debugging evidence |
+| Fatal application crash | Not established in supplied excerpts | No conclusion about overall stability |
+
+The absence of connection or payload evidence in these log excerpts must not be interpreted as proof that no communication occurred. It means that the available evidence does not establish it.
+
+## 11. Alternative Explanations and Limitations
+
+A balanced investigation must test explanations that could account for the observed behaviour without assuming malicious intent.
+
+Possible explanations include:
+
+1. A third-party analytics or telemetry library.
+2. A service used for device discovery or application functionality.
+3. A shared or repurposed domain infrastructure.
+4. An unrelated component operating within the application process.
+5. A potentially malicious or compromised component.
+
+At present, none of these explanations has been conclusively established.
+
+The most important limitation is that the logcat evidence records DNS resolution requests but does not reveal the application-layer contents of any subsequent communication.
+
+The process association is meaningful, but it does not identify the exact code responsible for initiating each request.
+
+Further correlation with network captures and application components is required.
+
+## 12. OWASP-Aligned Verification Roadmap
+
+The next technical stages will use the OWASP Mobile Application Security Verification Standard (MASVS) and Mobile Application Security Testing Guide (MASTG) as reference frameworks.
+
+Relevant areas include:
+
+- Network communication and endpoint identification.
+- Data protection and privacy.
+- Permissions and platform interaction.
+- Background execution.
+- Third-party libraries and SDKs.
+- Local storage.
+- Application component exposure.
+
+Official references:
+
+- https://mas.owasp.org/MASVS/
+- https://mas.owasp.org/MASTG/
+
+This is an initial verification roadmap. It does not represent complete MASVS testing, certification or a formal security audit.
+
+## 13. Priorities for the Next Investigation Stage
+
+The next stage should focus on resolving the FAFA-pattern DNS anomaly.
+
+Priority tests:
+
+1. Correlate the exact DNS timestamps with PCAPdroid or Wireshark records.
+2. Identify any destination IP addresses associated with the requests.
+3. Determine whether the application process establishes subsequent TCP or UDP connections.
+4. Compare activity during active use, idle periods and background operation.
+5. Examine whether the requests correlate with Bluetooth scanning or Connect to Devices functionality.
+6. Identify possible embedded SDKs or libraries responsible for the requests.
+7. Determine whether device, location or usage information is transmitted.
+8. Independently validate the relationship, if any, between the observed infrastructure and the Vo1d threat-intelligence reporting.
+
+The next stage should preserve original logs and packet captures, with timestamps and process identifiers recorded wherever possible.
+
+## 14. Overall Conclusion
+
+Version 2.1 establishes repeated DNS resolution requests for multiple hostnames matching a domain structure previously documented in Android malware research.
+
+The requests were observed in process-filtered logs associated with the Ola Radio application across two process instances.
+
+This is a significant and unresolved anomaly. It warrants further investigation into the application, its embedded components and the infrastructure contacted during operation.
+
+The investigation also identified Bluetooth scanning-related activity, location-related operations and an encrypted MapLibre connection. These findings provide additional context for assessing the application's runtime behaviour and privacy implications.
+
+At this stage, the evidence does not establish successful communication with FAFA-pattern hosts, data exfiltration, command-and-control activity, malware infection or developer involvement.
+
+However, the repeated DNS observations should not be dismissed as ordinary application behaviour without further verification.
+
+**The working investigative position is that the FAFA-pattern activity represents a credible security and privacy concern until its origin and purpose are understood.**
+
+This is a finding requiring explanation, not a verdict of guilt.
+
+---
+
+## 15. Version Control and Evidence Preservation
+
+Version 2.1 is a separate technical addendum to Version 2.0.
+
+Version 2.0 must remain unchanged.
+
+Original logs, packet captures and supporting records should be preserved privately. Redacted evidence may be added to the public repository where appropriate.
+
+Future findings will be recorded separately and incorporated into a subsequent version only when supported by evidence.
+
+**Next planned stage:** Network-level correlation of FAFA-pattern DNS requests with outbound connection records and packet-level evidence.
+
+**Investigation status:** Open — repeated suspicious DNS activity identified; source, purpose and consequences remain under investigation.
