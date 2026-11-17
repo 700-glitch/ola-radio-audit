@@ -722,6 +722,30 @@ Only share information you are comfortable making public.
 
 ## 14.6 Why independent testing matters
 
+
+
+
+
+ola-radio-audit/
+├── README.md
+├── evidence/
+│   ├── 01-device-information/
+│   ├── 02-original-pcap/
+│   ├── 03-dns-observations/
+│   ├── 04-tls-certificates/
+│   ├── 05-application-analysis/
+│   ├── 06-screenshots/
+│   └── 07-test-results/
+├── research/
+│   ├── fa-fa-domains.md
+│   ├── vo1d-research.md
+│   └── infrastructure.md
+├── methodology/
+│   └── repeatable-tests.md
+└── CHANGELOG.md
+
+
+
 If several people reproduce the same behaviour using different Android devices and different internet connections, the finding becomes more useful.
 
 If other people cannot reproduce it, that is also valuable.
